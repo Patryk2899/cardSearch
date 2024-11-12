@@ -5,7 +5,6 @@ plugins {
 }
 
 group = 'com.example'
-version = '0.0.1-SNAPSHOT'
 
 java {
 	toolchain {
@@ -24,12 +23,13 @@ repositories {
 }
 
 dependencies {
-	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+	implementation 'org.postgresql:postgresql:42.7.4'
 	implementation 'org.springframework.boot:spring-boot-starter-web'
 	compileOnly 'org.projectlombok:lombok'
 	annotationProcessor 'org.projectlombok:lombok'
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+	runtimeOnly 'org.flywaydb:flyway-database-postgresql:10.21.0'
 }
 
 tasks.named('test') {
