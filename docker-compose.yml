@@ -4,12 +4,13 @@ services:
   app:
     build:
       context: .
+      args:
+        PROJECT_NAME: ${PROJECT_NAME}
     container_name: app
     depends_on:
       - db
     env_file:
       - .env
-
     ports:
       - "8080:8080"
 
@@ -20,3 +21,17 @@ services:
       - .env
     ports:
       - "5432:5432"
+
+  mongodb:
+    image: mongo:latest
+    container_name: mongodb
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: example
+    volumes:
+      - mongo-data:/data/db
+
+volumes:
+  mongo-data:
