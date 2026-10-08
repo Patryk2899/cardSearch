@@ -1,37 +1,31 @@
-version: '3.8'
-
 services:
   app:
     build:
       context: .
-      args:
-        PROJECT_NAME: ${PROJECT_NAME}
-    container_name: app
-    depends_on:
-      - db
-    env_file:
-      - .env
     ports:
-      - "8080:8080"
-
-  db:
-    image: postgres
-    container_name: db
-    env_file:
-      - .env
-    ports:
-      - "5432:5432"
-
-  mongodb:
-    image: mongo:latest
-    container_name: mongodb
-    ports:
-      - "27017:27017"
+      - "${BACKEND_PORT:-8080}:8080"
     environment:
-      MONGO_INITDB_ROOT_USERNAME: root
-      MONGO_INITDB_ROOT_PASSWORD: example
+      SERVER_PORT: "8080"
+      JAVA_TOOL_OPTIONS: "${JAVA_TOOL_OPTIONS:--XX:MaxRAMPercentage=75.0}"
+      CARDS_DATABASE_PATH: /app/data/cards.db
+      CARDS_IMPORT_PATH: /seed/default-cards-20261008090544.jsonl
+      CARDS_IMPORT_ENABLED: "${CARDS_IMPORT_ENABLED:-true}"
     volumes:
-      - mongo-data:/data/db
+      - sqlite-data:/app/data
+      - type: bind
+        source: ./tmp/cardJsonData
+        target: /seed
+        read_only: true
+        bind:
+          create_host_path: false
+
+  frontend:
+    build:
+      context: ./frontend
+    depends_on:
+      - app
+    ports:
+      - "${FRONTEND_PORT:-3000}:80"
 
 volumes:
-  mongo-data:
+  sqlite-data:

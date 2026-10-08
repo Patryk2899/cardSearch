@@ -38,3 +38,7 @@ out/
 
 ### env ###
 .env
+
+### Local database and bulk seed files ###
+/data/
+/tmp/cardJsonData/
