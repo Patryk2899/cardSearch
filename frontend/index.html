@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CardSearch — Discover your next card</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <header><a class="brand" href="./"><span aria-hidden="true">♠</span> CardSearch</a><span class="badge">Sample collection</span></header>
+  <main>
+    <section class="intro">
+      <p class="eyebrow">THE NEXT GREAT FIND</p>
+      <h1>Small cards.<br>Endless possibilities.</h1>
+      <p>Explore the collection and find a card worth keeping.</p>
+    </section>
+    <section aria-label="Card collection">
+      <form id="search-form" class="toolbar" role="search">
+        <div class="search-field">
+          <label class="sr-only" for="search">Search by name, set, or description</label>
+          <input id="search" type="search" placeholder="Search by name, set, or description…" autocomplete="off">
+        </div>
+        <div class="filter-field"><label for="type">Card type</label><select id="type"><option value="">All types</option><option>Creature</option><option>Spell</option><option>Artifact</option><option>Land</option></select></div>
+        <div class="filter-field"><label for="sort">Sort by</label><select id="sort"><option value="name">Name: A–Z</option><option value="rarity">Rarity</option></select></div>
+      </form>
+      <div class="results-heading"><h2>The collection</h2><p id="result-count" role="status" aria-live="polite"></p></div>
+      <div id="cards" class="card-grid"></div>
+      <div id="empty-state" class="empty-state" hidden><h3>No cards found</h3><p>Try another name or a different card type.</p><button id="reset" type="button">Clear filters</button></div>
+    </section>
+  </main>
+  <footer>CardSearch <span>Demo with fictional sample cards. Live search is not connected yet.</span></footer>
+</body>
+</html>
