@@ -42,3 +42,5 @@ out/
 ### Local database and bulk seed files ###
 /data/
 /tmp/cardJsonData/
+__pycache__/
+*.pyc

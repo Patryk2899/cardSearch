@@ -28,6 +28,9 @@ button:disabled { cursor: wait; opacity: .65; }
 .secondary-button { background: #eaf0e6; color: #214b3f; }
 .danger-button { background: #f9e9e5; color: #a33226; }
 .remove-status { font-size: 13px; }
+.pdf-export-status { font-size: 13px; line-height: 1.6; overflow-wrap: anywhere; }
+.pdf-download { color: #214b3f; font-weight: 600; font-size: 14px; }
+.pdf-download[hidden] { display: none; }
 .saved-lists { display: grid; gap: 12px; }
 .saved-list { border: 1px solid #e1e6de; background: white; border-radius: 10px; padding: 18px; min-width: 0; }
 .saved-list summary { cursor: pointer; overflow-wrap: anywhere; line-height: 1.7; }

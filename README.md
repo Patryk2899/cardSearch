@@ -118,6 +118,46 @@ SELECT cards_text FROM card_lists WHERE id = 'your-list-id';
 SELECT * FROM list_card_images WHERE list_id = 'your-list-id';
 ```
 
+### Generate printable PDFs
+
+Save an image for every card copy, then click **Generate PDFs** on the saved list.
+The app generates the files in the background and shows progress. Click
+**Download PDFs (ZIP)** when ready. Each PDF holds up to nine cards in list order,
+including repeated copies; the last PDF leaves unused positions blank.
+For example, 100 cards produce 12 separate PDFs. Unsaved image choices are not
+included. A running export uses a snapshot of the saved list at the time it starts.
+
+The bundled `src/main/resources/pdf/nine-cards.sla` is the supplied Scribus 1.6.2
+template. Scribus renders it directly, preserving its original, slightly
+asymmetric frame coordinates, 181.5 × 252 point image frames, non-proportional
+image fitting, A4 trim area, PDF 1.4 RGB output, 300 DPI export setting, and
+40-point PDF bleed on every side. The resulting PDF MediaBox is 675.28 × 921.89
+points with a 595.28 × 841.89 point A4 TrimBox. The template's old temporary image
+references are replaced only in generated working copies. The source stays intact.
+
+The template's PDF export settings have mirroring disabled; its separate Scribus
+printer settings enable vertical mirroring. Exports use the saved PDF settings.
+Printer-driver options (paper feed, printer scaling, paper type, and similar
+device settings) still need to be selected when printing the downloaded PDFs.
+The app does not send jobs directly to the printer.
+
+Docker installs Scribus and a virtual display automatically. For local Java
+development, install Scribus and set `CARDS_PDF_SCRIBUS_COMMAND` to its executable
+if it is not on PATH (for example `C:/Program Files/Scribus 1.6.0/Scribus.exe`).
+Linux also needs `xvfb-run` and `xauth`. Generated files, job status, and downloaded
+image cache are stored beside the SQLite database in `pdf-exports/` (Docker:
+`data/docker/pdf-exports/`). Finished exports remain downloadable after a backend
+restart; interrupted exports can be generated again. Repeated image URLs are
+downloaded once and cached for later exports.
+
+API: `POST /api/card-lists/{id}/pdf-exports` starts a job (202),
+`GET /api/card-lists/{id}/pdf-exports/{jobId}` reports status, and
+`GET /api/card-lists/{id}/pdf-exports/{jobId}/download` downloads the ZIP.
+Incomplete lists return 409. Rendering errors are reported in the job status;
+technical details are retained in the job's `scribus.log`.
+
+Template regression checks: `python -m unittest discover -s src/test/python`.
+
 ### Card catalog seed
 
 Place the seed file at:

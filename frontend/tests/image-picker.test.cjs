@@ -41,8 +41,13 @@ async function setup(entries = [
   nodes['#save-toast'].hidden = true;
   const state = { listId: 'list', name: 'My list', cardsText: '2 Mountain', entries, selections: [] };
   const requests = [];
+  const pdfRequests = [];
   let failSave = false;
   const fetch = async (url, options = {}) => {
+    if (url.endsWith('/pdf-exports')) {
+      pdfRequests.push({ url, ...options });
+      return { ok: true, json: async () => ({ id: 'export-1', status: 'READY', message: '1 PDF ready to download.' }) };
+    }
     if (url.endsWith('/image-options')) return { ok: true, json: async () => structuredClone(state) };
     if (url.endsWith('/image-selections')) {
       requests.push({ url, ...options });
@@ -61,7 +66,7 @@ async function setup(entries = [
   const imageButton = nodes['#saved-lists'].children[0].children[2].children[1];
   imageButton.events.click();
   await new Promise(resolve => setImmediate(resolve));
-  return { nodes, state, requests, imageButton, failSave: () => { failSave = true; } };
+  return { nodes, state, requests, pdfRequests, imageButton, failSave: () => { failSave = true; } };
 }
 
 function choose(nodes, option) {
@@ -174,4 +179,23 @@ test('clicking another image changes selection without replacing the gallery', a
   first.children[0].events.error();
   assert.equal(first.children[0].hidden, true);
   assert.equal(first.children[1].hidden, false);
+});
+
+test('PDF generation requires saved assignments and exposes the generated ZIP', async () => {
+  const { nodes, pdfRequests } = await setup();
+  const actions = () => nodes['#saved-lists'].children[0].children[2];
+  assert.equal(actions().children[3].disabled, true);
+  choose(nodes, 'a:-1');
+  await nodes['#save-images'].events.click();
+  assert.equal(actions().children[3].disabled, true);
+  nodes['#next-image-card'].events.click();
+  choose(nodes, 'b:-1');
+  await nodes['#save-images'].events.click();
+  assert.equal(actions().children[3].disabled, false);
+  actions().children[3].events.click();
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(pdfRequests.length, 1);
+  assert.equal(pdfRequests[0].method, 'POST');
+  assert.equal(actions().children[4].hidden, false);
+  assert.equal(actions().children[4].href, '/api/card-lists/list/pdf-exports/export-1/download');
 });
