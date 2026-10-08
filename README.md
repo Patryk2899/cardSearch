@@ -1,12 +1,11 @@
 # CardSearch
 
 A Spring Boot backend and a responsive frontend built with HTML, CSS, and
-JavaScript. Search fictional sample cards, filter by type, sort by name or rarity,
-and clear filters when no results match.
+JavaScript. Paste and save card lists to SQLite, then reopen them from the UI.
 
 The backend stores real card records in SQLite and imports the supplied Scryfall
-JSONL file on startup. The frontend still uses an in-memory sample collection in
-`frontend/app.js`; a card-search API has not been implemented yet.
+JSONL file on startup. The frontend manages saved lists; a card-search API has
+not been implemented yet.
 
 ## Run with Docker
 
@@ -34,6 +33,50 @@ JAVA_TOOL_OPTIONS=-XX:MaxRAMPercentage=75.0
 Stop the services with `docker compose down`.
 
 ## SQLite and initial data
+
+### Saved card lists
+
+In the frontend, click **New list**, paste a list into **Your card lists**,
+and click **Add list**. Expand a saved list and use **Remove list** to delete it.
+Use **Edit list** to load an existing list into the form, change its name or
+contents, and click **Save changes**. This updates the same list without creating
+a duplicate. **Cancel edit** discards the draft. Failed updates keep your changes
+in the form so you can retry. Quantity totals are recalculated after each edit.
+The name is optional. There is no card-count or text-length validation; lists
+with more than 100 cards are supported. Quantities, duplicates, unknown card
+names, blank lines, and original formatting are preserved exactly. Only empty
+input is rejected. The UI shows the total number of cards as well as the number
+of entries. `2 Mountain (FRA) 393` is parsed as quantity 2, card name `Mountain`,
+set code `FRA`, and collector number `393`. A line without a quantity means one
+copy; `2x Mountain` is also supported. Quantities have no application-defined
+upper limit. Blank lines are ignored when counting entries.
+
+Saved lists can be expanded and read again after refreshing the page. They are
+stored in the `card_lists` SQLite table in the same persistent database as the
+card catalog. Structured entries and totals are derived from the saved text when
+reading, so existing lists also recognize quantities without a database migration.
+Card names are not resolved against the catalog yet.
+
+API endpoints:
+
+- `POST /api/card-lists` — JSON: `{"name":"My deck","cardsText":"1 Sol Ring\n10 Forest"}`.
+- `GET /api/card-lists` — saved-list summaries, newest first.
+- `GET /api/card-lists/{id}` — full saved text and metadata.
+- `PUT /api/card-lists/{id}` — replace name/text using the same JSON as POST;
+  preserves the list ID and creation date (404 if it does not exist).
+- `DELETE /api/card-lists/{id}` — delete one list (204; 404 if it does not exist).
+
+List summaries include `cardCount`. Full-list responses additionally include
+`entries`, with `quantity`, `cardName`, `setCode`, and `collectorNumber`.
+
+Run the frontend through Docker Compose to use the API proxy and saved-list features.
+
+```sql
+SELECT id, name, line_count, created_at FROM card_lists;
+SELECT cards_text FROM card_lists WHERE id = 'your-list-id';
+```
+
+### Card catalog seed
 
 Place the seed file at:
 
@@ -100,13 +143,6 @@ The backend requires JDK 25:
 On Windows, use `.\gradlew.bat bootRun` instead. Run backend tests with
 `./gradlew test` (or `.\gradlew.bat test` on Windows).
 
-The frontend needs no build step or dependencies. Open `frontend/index.html` in
-a browser, or serve the directory with any static HTTP server, for example:
-
-```sh
-python -m http.server 3000 --directory frontend
-```
-
-The `/api/` proxy is available when running through Docker Compose. To connect
-real data later, implement a backend endpoint under `/api/` and replace the sample
-array in `frontend/app.js` with a fetch to that endpoint.
+The frontend needs no build step or dependencies. Run it through Docker Compose
+so that Nginx forwards `/api/` requests to the backend. For other local setups,
+configure your static server to proxy `/api/` to `http://localhost:8080`.

@@ -6,50 +6,32 @@ header { min-height: 90px; display: flex; align-items: center; justify-content: 
 .brand { display: flex; align-items: center; gap: 10px; color: inherit; text-decoration: none; font-size: 21px; font-weight: 750; letter-spacing: -.8px; }
 .brand > span { display: grid; place-items: center; width: 34px; height: 38px; border-radius: 8px; background: #214b3f; color: white; font-size: 25px; }
 .badge { font-size: 12px; color: #52695b; border: 1px solid #d2ddcf; border-radius: 30px; padding: 7px 12px; }
-.intro { padding: 64px 0 46px; }
-.eyebrow { font-size: 11px; font-weight: 700; letter-spacing: 2.5px; color: #527658; }
-h1 { margin: 16px 0; font-size: clamp(36px, 5.5vw, 60px); line-height: 1.08; letter-spacing: -2.5px; font-weight: 650; }
-.intro > p:last-child { color: #68766a; font-size: 16px; line-height: 1.6; }
-.toolbar { display: flex; align-items: center; gap: 18px; padding: 18px; background: white; border: 1px solid #e1e6de; border-radius: 12px; }
-.search-field { flex: 1; }
-input, select, button { font: inherit; }
-input, select { min-height: 44px; width: 100%; color: #273e32; border: 1px solid #dbe2d7; border-radius: 7px; background: #fafbf8; padding: 10px 12px; }
+input, textarea, button { font: inherit; }
+input, textarea { min-height: 44px; width: 100%; color: #273e32; border: 1px solid #dbe2d7; border-radius: 7px; background: #fafbf8; padding: 10px 12px; }
 input::placeholder { color: #748174; }
-.filter-field { display: flex; align-items: center; gap: 9px; }
-.filter-field label { font-size: 12px; color: #647460; white-space: nowrap; }
-select { width: auto; }
 :focus-visible { outline: 3px solid #83ad89; outline-offset: 3px; }
 .results-heading { display: flex; justify-content: space-between; align-items: center; margin: 30px 0 20px; }
 h2 { font-size: 19px; font-weight: 650; margin: 0; letter-spacing: -.5px; }
-#result-count { font-size: 13px; color: #73816e; margin: 0; }
-.card-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 22px; }
-.card { background: white; overflow: hidden; border: 1px solid #e0e5dc; border-radius: 11px; transition: transform .2s, box-shadow .2s; }
-.card:hover { transform: translateY(-4px); box-shadow: 0 8px 24px #1e402414; }
-.card-art { height: 190px; display: grid; place-items: center; position: relative; overflow: hidden; background: radial-gradient(ellipse at 40% 25%, var(--light), transparent 70%), var(--dark); }
-.card-art::before, .card-art::after { content: ''; position: absolute; width: 145px; height: 145px; border: 1px solid #ffffff26; transform: rotate(45deg); border-radius: 25%; }
-.card-art::after { width: 200px; height: 200px; }
-.card-symbol { z-index: 1; font: 100px Georgia, serif; color: #fff9; text-shadow: 0 4px 30px #ffffff3b; }
-.ember { --light: #d48551; --dark: #742b25; }
-.ocean { --light: #70a7af; --dark: #1e4759; }
-.forest { --light: #91ac74; --dark: #284e3c; }
-.astral { --light: #af94bb; --dark: #514168; }
-.gold { --light: #e0c887; --dark: #99814f; }
-.moon { --light: #9aa5c9; --dark: #3e456d; }
-.card-body { padding: 18px; }
-.card-metadata { display: flex; align-items: center; justify-content: space-between; gap: 6px; font-size: 10px; color: #657361; }
-.rarity { border-radius: 4px; padding: 3px 6px; background: #f0f3ee; }
-.legendary { background: #fbefd6; color: #8a6517; }
-.rare { background: #efebf5; color: #78608d; }
-.uncommon { background: #e8f1e7; color: #50704d; }
 h3 { font-size: 16px; margin: 12px 0 9px; letter-spacing: -.4px; }
-.description { font-size: 12px; line-height: 1.6; color: #6f7c6a; min-height: 39px; margin: 0; }
-.card-set { font-size: 10px; color: #74816e; border-top: 1px solid #edf0e9; margin: 17px 0 0; padding-top: 12px; text-transform: uppercase; letter-spacing: 1px; }
-.empty-state { text-align: center; padding: 50px 20px; color: #68766a; }
-.empty-state[hidden] { display: none; }
 button { cursor: pointer; border: 0; border-radius: 7px; background: #214b3f; color: white; padding: 11px 18px; }
 footer { display: flex; justify-content: space-between; gap: 16px; margin-top: 60px; padding-block: 25px; font-size: 12px; color: #6b7968; border-top: 1px solid #dce3db; }
-.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
-@media (max-width: 1000px) { .card-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } .toolbar { flex-wrap: wrap; } .search-field { flex-basis: 100%; } }
-@media (max-width: 700px) { .card-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; } header, main, footer { padding-inline: 20px; } .intro { padding-top: 42px; } footer { flex-direction: column; } }
-@media (max-width: 420px) { .card-grid { grid-template-columns: 1fr; } .filter-field { flex: 1 1 100%; justify-content: space-between; } .badge { font-size: 10px; } }
-@media (prefers-reduced-motion: reduce) { .card { transition: none; } .card:hover { transform: none; } }
+.list-section { margin-bottom: 44px; }
+.section-description, .field-hint, .optional, #lists-status { color: #647460; font-size: 13px; line-height: 1.6; }
+.list-form { display: grid; gap: 12px; padding: 24px; background: white; border: 1px solid #e1e6de; border-radius: 12px; }
+.list-form label { font-size: 14px; font-weight: 600; }
+.optional { font-weight: 400; }
+textarea { resize: vertical; line-height: 1.7; min-height: 160px; }
+.field-hint { margin: 0; }
+.list-actions { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+#save-status { margin: 0; font-size: 13px; overflow-wrap: anywhere; }
+button:disabled { cursor: wait; opacity: .65; }
+.secondary-button { background: #eaf0e6; color: #214b3f; }
+.danger-button { background: #f9e9e5; color: #a33226; }
+.remove-status { font-size: 13px; }
+.saved-lists { display: grid; gap: 12px; }
+.saved-list { border: 1px solid #e1e6de; background: white; border-radius: 10px; padding: 18px; min-width: 0; }
+.saved-list summary { cursor: pointer; overflow-wrap: anywhere; line-height: 1.7; }
+.saved-list-meta { display: block; color: #647460; font-size: 12px; }
+.saved-list pre { white-space: pre-wrap; overflow-wrap: anywhere; font-size: 13px; line-height: 1.7; max-height: 400px; overflow: auto; padding: 14px; background: #f7f8f4; border-radius: 7px; }
+.error { color: #a33226 !important; }
+@media (max-width: 700px) { header, main, footer { padding-inline: 20px; } footer { flex-direction: column; } }
