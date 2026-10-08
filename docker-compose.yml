@@ -11,7 +11,7 @@ services:
       CARDS_IMPORT_PATH: /seed/default-cards-20261008090544.jsonl
       CARDS_IMPORT_ENABLED: "${CARDS_IMPORT_ENABLED:-true}"
     volumes:
-      - sqlite-data:/app/data
+      - ./data/docker:/app/data
       - type: bind
         source: ./tmp/cardJsonData
         target: /seed

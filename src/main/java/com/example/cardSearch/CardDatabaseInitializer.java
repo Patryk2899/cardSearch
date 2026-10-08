@@ -88,6 +88,15 @@ public class CardDatabaseInitializer implements ApplicationRunner {
             statement.execute("CREATE INDEX IF NOT EXISTS idx_cards_set_code ON cards(set_code)");
             statement.execute("CREATE INDEX IF NOT EXISTS idx_cards_oracle_id ON cards(oracle_id)");
             statement.execute("""
+                    CREATE TABLE IF NOT EXISTS card_lists (
+                        id TEXT PRIMARY KEY NOT NULL,
+                        name TEXT NOT NULL,
+                        cards_text TEXT NOT NULL,
+                        line_count INTEGER NOT NULL,
+                        created_at TEXT NOT NULL
+                    )
+                    """);
+            statement.execute("""
                     CREATE TABLE IF NOT EXISTS seed_imports (
                         source_name TEXT PRIMARY KEY NOT NULL,
                         row_count INTEGER NOT NULL,
