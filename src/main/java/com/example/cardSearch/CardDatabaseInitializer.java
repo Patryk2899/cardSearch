@@ -87,6 +87,7 @@ public class CardDatabaseInitializer implements ApplicationRunner {
             statement.execute("CREATE INDEX IF NOT EXISTS idx_cards_name ON cards(name)");
             statement.execute("CREATE INDEX IF NOT EXISTS idx_cards_set_code ON cards(set_code)");
             statement.execute("CREATE INDEX IF NOT EXISTS idx_cards_oracle_id ON cards(oracle_id)");
+            statement.execute("CREATE INDEX IF NOT EXISTS idx_cards_image_lookup ON cards(name, oracle_id, id)");
             statement.execute("""
                     CREATE TABLE IF NOT EXISTS card_lists (
                         id TEXT PRIMARY KEY NOT NULL,
@@ -94,6 +95,17 @@ public class CardDatabaseInitializer implements ApplicationRunner {
                         cards_text TEXT NOT NULL,
                         line_count INTEGER NOT NULL,
                         created_at TEXT NOT NULL
+                    )
+                    """);
+            statement.execute("""
+                    CREATE TABLE IF NOT EXISTS list_card_images (
+                        list_id TEXT NOT NULL REFERENCES card_lists(id) ON DELETE CASCADE,
+                        entry_index INTEGER NOT NULL,
+                        copy_index TEXT NOT NULL,
+                        card_id TEXT NOT NULL,
+                        face_index INTEGER NOT NULL,
+                        image_uri TEXT NOT NULL,
+                        PRIMARY KEY (list_id, entry_index, copy_index)
                     )
                     """);
             statement.execute("""

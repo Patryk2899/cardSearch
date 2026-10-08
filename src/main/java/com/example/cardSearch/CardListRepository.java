@@ -24,7 +24,8 @@ public class CardListRepository {
 
     public record SavedList(String id, String name, String cardsText, long lineCount, String createdAt,
                             BigInteger cardCount, List<CardListParser.Entry> entries) {}
-    public record ListSummary(String id, String name, long lineCount, String createdAt, BigInteger cardCount) {}
+    public record ListSummary(String id, String name, long lineCount, String createdAt, BigInteger cardCount,
+                              long assignedImageCount) {}
 
     private static SavedList savedList(String id, String name, String text, long lineCount, String createdAt) {
         var entries = CardListParser.parse(text);
@@ -66,14 +67,28 @@ public class CardListRepository {
                      UPDATE card_lists SET name = ?, cards_text = ?, line_count = ?
                      WHERE id = ? RETURNING created_at
                      """)) {
+            connection.setAutoCommit(false);
+            // A different card list invalidates the old per-copy assignments.
+            try (var clear = connection.prepareStatement("""
+                    DELETE FROM list_card_images WHERE list_id = ? AND EXISTS (
+                        SELECT 1 FROM card_lists WHERE id = ? AND cards_text <> ?)
+                    """)) {
+                clear.setString(1, id);
+                clear.setString(2, id);
+                clear.setString(3, cardsText);
+                clear.executeUpdate();
+            }
             update.setString(1, title);
             update.setString(2, cardsText);
             update.setLong(3, lineCount);
             update.setString(4, id);
+            Optional<SavedList> saved;
             try (var row = update.executeQuery()) {
-                if (!row.next()) return Optional.empty();
-                return Optional.of(savedList(id, title, cardsText, lineCount, row.getString("created_at")));
+                saved = row.next() ? Optional.of(savedList(id, title, cardsText, lineCount,
+                        row.getString("created_at"))) : Optional.empty();
             }
+            connection.commit();
+            return saved;
         }
     }
 
@@ -82,13 +97,15 @@ public class CardListRepository {
         try (var connection = connect();
              var statement = connection.createStatement();
              var rows = statement.executeQuery("""
-                     SELECT id, name, cards_text, line_count, created_at FROM card_lists
+                     SELECT id, name, cards_text, line_count, created_at,
+                         (SELECT COUNT(*) FROM list_card_images WHERE list_id = card_lists.id) AS assigned_image_count
+                     FROM card_lists
                      ORDER BY created_at DESC, id DESC
                      """)) {
             while (rows.next()) {
                 lists.add(new ListSummary(rows.getString("id"), rows.getString("name"),
                         rows.getLong("line_count"), rows.getString("created_at"),
-                        CardListParser.cardCount(rows.getString("cards_text"))));
+                        CardListParser.cardCount(rows.getString("cards_text")), rows.getLong("assigned_image_count")));
             }
         }
         return lists;
@@ -118,6 +135,7 @@ public class CardListRepository {
         Connection connection = DriverManager.getConnection(databaseUrl);
         try (var statement = connection.createStatement()) {
             statement.execute("PRAGMA busy_timeout = 30000");
+            statement.execute("PRAGMA foreign_keys = ON");
         } catch (SQLException failure) {
             connection.close();
             throw failure;

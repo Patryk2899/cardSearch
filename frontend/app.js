@@ -6,6 +6,15 @@ function element(tag, className, text) {
 }
 
 
+const saveToast = document.querySelector('#save-toast');
+let saveToastTimeout;
+function showSaveToast(message) {
+  clearTimeout(saveToastTimeout);
+  saveToast.textContent = message;
+  saveToast.hidden = false;
+  saveToastTimeout = setTimeout(() => { saveToast.hidden = true; }, 5000);
+}
+
 const listForm = document.querySelector('#card-list-form');
 const listName = document.querySelector('#list-name');
 const listText = document.querySelector('#list-text');
@@ -48,17 +57,27 @@ async function listRequest(path = '', options = {}) {
 function savedListElement(list) {
   const details = element('details', 'saved-list');
   const summary = element('summary', '', list.name);
+  const assigned = BigInt(list.assignedImageCount || 0);
+  const total = BigInt(list.cardCount);
+  const complete = total > 0n && assigned === total;
+  const imageStatus = complete ? 'Complete' : assigned > 0n ? 'In progress' : 'Not started';
+  const imageBadge = element('span', `list-image-status ${complete ? 'complete' : assigned > 0n ? 'in-progress' : 'not-started'}`,
+    `Images: ${assigned} / ${total} · ${imageStatus}`);
   const date = new Date(list.createdAt).toLocaleString();
   summary.append(element('span', 'saved-list-meta', `${list.cardCount} ${list.cardCount === 1 ? 'card' : 'cards'} · ${list.lineCount} ${list.lineCount === 1 ? 'entry' : 'entries'} · ${date}`));
   const text = element('pre', '', 'Loading list…');
+  summary.append(imageBadge);
   const editButton = element('button', 'secondary-button', 'Edit list');
   editButton.type = 'button';
   const removeButton = element('button', 'danger-button', 'Remove list');
+  const imageButton = element('button', 'secondary-button', 'Choose images');
+  imageButton.type = 'button';
+  imageButton.addEventListener('click', () => openImagePicker(list.id));
   removeButton.type = 'button';
   const removeStatus = element('p', 'remove-status');
   removeStatus.setAttribute('role', 'status');
   const actions = element('div', 'list-actions');
-  actions.append(editButton, removeButton);
+  actions.append(editButton, imageButton, removeButton);
   details.append(summary, text, actions, removeStatus);
   editButton.addEventListener('click', async () => {
     if (saveButton.disabled) return;
@@ -91,6 +110,7 @@ function savedListElement(list) {
     removeStatus.classList.remove('error');
     try {
       await listRequest(`/${encodeURIComponent(list.id)}`, { method: 'DELETE' });
+      if (imageState?.listId === list.id) resetImagePicker();
       if (editingListId === list.id) {
         resetListEditor();
         saveStatus.textContent = 'List removed.';
@@ -165,8 +185,10 @@ listForm.addEventListener('submit', async event => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(request),
     });
+    if (imageState?.listId === listId) resetImagePicker();
     resetListEditor();
     saveStatus.textContent = `Saved “${saved.name}” (${saved.cardCount} ${saved.cardCount === 1 ? 'card' : 'cards'}).`;
+    showSaveToast('List saved successfully.');
     await loadSavedLists();
   } catch (error) {
     saveStatus.textContent = error.message;
@@ -191,4 +213,171 @@ cancelEditButton.addEventListener('click', () => {
   saveStatus.classList.remove('error');
   listName.focus();
 });
+const imagePicker = document.querySelector('#image-picker');
+const imageControls = document.querySelector('#image-controls');
+const imageOptions = document.querySelector('#image-options');
+const imageSaveStatus = document.querySelector('#image-save-status');
+const imageSaveButton = document.querySelector('#save-images');
+const imageCloseButton = document.querySelector('#close-image-picker');
+const previousImageButton = document.querySelector('#previous-image-card');
+const nextImageButton = document.querySelector('#next-image-card');
+let imageState = null;
+let imageSelections = new Map();
+let imageEntryIndex = 0;
+let imageCopyIndex = 0n;
+let imageDirty = false;
+let imageLoading = false;
+
+function resetImagePicker() {
+  imageState = null;
+  imageSelections.clear();
+  imageDirty = false;
+  imagePicker.hidden = true;
+  imageOptions.replaceChildren();
+  imageSaveButton.disabled = true;
+}
+
+async function openImagePicker(listId) {
+  if (imageLoading || imageControls.disabled) return;
+  if (imageDirty && !window.confirm('Discard unsaved image choices and open this list?')) return;
+  imageLoading = true;
+  imageSaveButton.disabled = true;
+  imagePicker.hidden = false;
+  imageControls.hidden = true;
+  imageSaveStatus.textContent = '';
+  document.querySelector('#image-progress').textContent = 'Loading available card images…';
+  imagePicker.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  try {
+    const state = await listRequest(`/${encodeURIComponent(listId)}/image-options`);
+    imageState = state;
+    imageSelections = new Map(state.selections.filter(selected =>
+      state.entries[selected.entryIndex]?.options.some(option => option.id === selected.optionId)
+    ).map(selected => [`${selected.entryIndex}:${selected.copyIndex}`, selected]));
+    imageEntryIndex = state.entries.findIndex(entry => BigInt(entry.quantity) > 0n);
+    imageCopyIndex = 0n;
+    imageDirty = false;
+    document.querySelector('#image-heading').textContent = `Choose images — ${state.name}`;
+    imageControls.hidden = false;
+    renderImageCopy();
+  } catch (error) {
+    resetImagePicker();
+    imagePicker.hidden = false;
+    document.querySelector('#image-progress').textContent = error.message;
+  } finally {
+    imageLoading = false;
+  }
+}
+
+function imageTotal() {
+  return imageState.entries.reduce((total, entry) => total + BigInt(entry.quantity), 0n);
+}
+
+function renderImageCopy() {
+  const total = imageTotal();
+  const entry = imageState.entries[imageEntryIndex];
+  const position = imageEntryIndex < 0 ? 0n : imageState.entries.slice(0, imageEntryIndex)
+    .reduce((count, item) => count + BigInt(item.quantity), 0n) + imageCopyIndex + 1n;
+  document.querySelector('#image-progress').textContent = `Card ${position} of ${total} · ${imageSelections.size} of ${total} images selected`;
+  document.querySelector('#image-card-name').textContent = entry?.cardName || 'No card copies in this list';
+  document.querySelector('#image-copy-label').textContent = entry ? `Copy ${imageCopyIndex + 1n} of ${entry.quantity}` : '';
+  const options = (entry?.options || []).map(option => {
+    const label = `${option.name} · ${option.setName || option.setCode || 'Unknown set'} (${option.setCode || '?'}) ${option.collectorNumber || ''} · ${option.lang || ''}`;
+    const choice = element('button', 'image-option');
+    choice.type = 'button';
+    choice.value = option.id;
+    choice.setAttribute('aria-label', label);
+    const thumbnail = element('img', 'image-option-thumbnail');
+    thumbnail.src = option.imageUrl;
+    thumbnail.alt = option.name;
+    thumbnail.loading = 'lazy';
+    thumbnail.decoding = 'async';
+    const fallback = element('span', 'image-option-fallback', 'Image could not load');
+    fallback.hidden = true;
+    thumbnail.addEventListener('error', () => {
+      thumbnail.hidden = true;
+      fallback.hidden = false;
+    });
+    choice.append(thumbnail, fallback, element('span', 'image-option-caption', label), element('span', 'image-option-selection'));
+    choice.addEventListener('click', () => {
+      if (imageControls.disabled) return;
+      imageSelections.set(`${imageEntryIndex}:${imageCopyIndex}`, {
+        entryIndex: imageEntryIndex, copyIndex: imageCopyIndex.toString(), optionId: option.id,
+      });
+      imageDirty = true;
+      imageSaveButton.disabled = false;
+      imageSaveStatus.textContent = '';
+      updateImageSelection();
+    });
+    return choice;
+  });
+  imageOptions.replaceChildren(...options);
+  const status = document.querySelector('#image-match-status');
+  status.textContent = entry && !options.length ? 'No images found in the catalog. Edit the card name in your list, then reopen image selection.' : `${options.length} available images`;
+  status.classList.toggle('error', !!entry && !options.length);
+  previousImageButton.disabled = position <= 1n;
+  nextImageButton.disabled = position >= total;
+  previousImageButton.hidden = previousImageButton.disabled;
+  nextImageButton.hidden = nextImageButton.disabled;
+  updateImageSelection();
+}
+
+function updateImageSelection() {
+  const selectedId = imageSelections.get(`${imageEntryIndex}:${imageCopyIndex}`)?.optionId;
+  for (const choice of imageOptions.children) {
+    const selected = choice.value === selectedId;
+    choice.setAttribute('aria-pressed', String(selected));
+    choice.children[3].textContent = selected ? '✓ Selected' : 'Select image';
+  }
+  const total = imageTotal();
+  const position = imageEntryIndex < 0 ? 0n : imageState.entries.slice(0, imageEntryIndex)
+    .reduce((count, item) => count + BigInt(item.quantity), 0n) + imageCopyIndex + 1n;
+  document.querySelector('#image-progress').textContent = `Card ${position} of ${total} · ${imageSelections.size} of ${total} images selected`;
+  imageSaveButton.disabled = imageSelections.size === 0;
+}
+
+function moveImageCopy(direction) {
+  const quantity = BigInt(imageState.entries[imageEntryIndex].quantity);
+  if (direction > 0 && imageCopyIndex + 1n < quantity) imageCopyIndex++;
+  else if (direction < 0 && imageCopyIndex > 0n) imageCopyIndex--;
+  else {
+    let index = imageEntryIndex + direction;
+    while (index >= 0 && index < imageState.entries.length && BigInt(imageState.entries[index].quantity) === 0n) index += direction;
+    if (index < 0 || index >= imageState.entries.length) return;
+    imageEntryIndex = index;
+    imageCopyIndex = direction > 0 ? 0n : BigInt(imageState.entries[index].quantity) - 1n;
+  }
+  renderImageCopy();
+}
+previousImageButton.addEventListener('click', () => moveImageCopy(-1));
+nextImageButton.addEventListener('click', () => moveImageCopy(1));
+imageCloseButton.addEventListener('click', () => {
+  if (imageLoading || imageControls.disabled) return;
+  if (imageDirty && !window.confirm('Discard unsaved image choices?')) return;
+  resetImagePicker();
+});
+
+imageSaveButton.addEventListener('click', async () => {
+  if (!imageState || imageSelections.size === 0 || imageControls.disabled) return;
+  imageSaveButton.disabled = true;
+  imageControls.disabled = imageCloseButton.disabled = true;
+  imageSaveStatus.classList.remove('error');
+  imageSaveStatus.textContent = 'Saving image choices…';
+  try {
+    const result = await listRequest(`/${encodeURIComponent(imageState.listId)}/image-selections`, {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ cardsText: imageState.cardsText, selections: [...imageSelections.values()] }),
+    });
+    imageDirty = false;
+    showSaveToast(`Saved images for ${result.savedCopies} of ${imageTotal()} card copies.`);
+    await loadSavedLists();
+    imageSaveStatus.textContent = `Saved images for ${result.savedCopies} of ${imageTotal()} card copies to this list.`;
+  } catch (error) {
+    imageSaveStatus.textContent = error.message;
+    imageSaveStatus.classList.add('error');
+  } finally {
+    imageControls.disabled = imageCloseButton.disabled = false;
+    imageSaveButton.disabled = imageSelections.size === 0;
+  }
+});
+
 loadSavedLists();
