@@ -7,7 +7,8 @@ import java.util.regex.Pattern;
 /** Parses deck-list notation without changing or rejecting the original text. */
 public final class CardListParser {
     private static final Pattern QUANTITY = Pattern.compile("^(\\d+)[xX]?\\s+(.+)$");
-    private static final Pattern PRINTING = Pattern.compile("^(.+?)\\s+\\(([A-Za-z0-9]+)\\)(?:\\s+(\\S+))?$");
+    private static final Pattern PRINTING = Pattern.compile("^\\(([A-Za-z0-9]+)\\)(?:\\s+(\\S+))?$");
+    private static final Pattern FACE_SEPARATOR = Pattern.compile("\\s*(?<!/)/{1,2}(?!/)\\s*");
 
     private CardListParser() {}
 
@@ -30,10 +31,18 @@ public final class CardListParser {
             quantity = new BigInteger(quantityMatch.group(1));
             name = quantityMatch.group(2).strip();
         }
-        var printingMatch = PRINTING.matcher(name);
-        if (printingMatch.matches()) {
-            return new Entry(quantity, printingMatch.group(1), printingMatch.group(2), printingMatch.group(3));
+        int printingStart = name.indexOf('(');
+        if (printingStart >= 0) {
+            var printingMatch = PRINTING.matcher(name.substring(printingStart));
+            name = name.substring(0, printingStart).strip();
+            if (printingMatch.matches()) {
+                return new Entry(quantity, normalizeName(name), printingMatch.group(1), printingMatch.group(2));
+            }
         }
-        return new Entry(quantity, name, null, null);
+        return new Entry(quantity, normalizeName(name), null, null);
+    }
+
+    private static String normalizeName(String name) {
+        return FACE_SEPARATOR.matcher(name).replaceAll(" // ");
     }
 }

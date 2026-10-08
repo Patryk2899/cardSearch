@@ -4,8 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>CardSearch — Your card lists</title>
-  <link rel="stylesheet" href="styles.css">
-  <script src="app.js" defer></script>
+  <link rel="stylesheet" href="styles.css?v=20261008-save-images">
+  <script src="app.js?v=20261008-image-counts" defer></script>
 </head>
 <body>
   <header><a class="brand" href="./"><span aria-hidden="true">♠</span> CardSearch</a><span class="badge">Card lists</span></header>
@@ -26,7 +26,22 @@
       <p id="lists-status" role="status" aria-live="polite"></p>
       <div id="saved-lists" class="saved-lists"></div>
     </section>
+    <section id="image-picker" class="image-picker" aria-labelledby="image-heading" hidden>
+      <div class="results-heading"><h2 id="image-heading">Choose card images</h2><button id="close-image-picker" class="secondary-button" type="button">Close</button></div>
+      <p id="image-progress" role="status" aria-live="polite"></p>
+      <fieldset id="image-controls">
+        <legend id="image-card-name"></legend>
+        <p id="image-copy-label" class="field-hint"></p>
+        <div class="list-actions image-save-actions"><button id="save-images" type="button" disabled>Save images to list</button><p id="image-save-status" role="status" aria-live="polite"></p></div>
+        <p class="field-hint">Save your assigned images at any time and finish the remaining cards later.</p>
+        <p class="field-hint">Click an image to select it for this copy. The printing from your pasted list is shown first when available.</p>
+        <p id="image-match-status" role="status"></p>
+        <div id="image-options" class="image-options-grid" role="group" aria-label="Available card images"></div>
+        <div class="list-actions"><button id="previous-image-card" type="button" class="secondary-button">Previous card</button><button id="next-image-card" type="button" class="secondary-button">Next card</button></div>
+      </fieldset>
+    </section>
   </main>
   <footer>CardSearch <span>Your lists, saved and ready for the next game.</span></footer>
+  <div id="save-toast" class="save-toast" role="status" aria-live="polite" aria-atomic="true" hidden></div>
 </body>
 </html>

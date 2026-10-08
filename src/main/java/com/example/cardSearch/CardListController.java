@@ -17,9 +17,11 @@ import java.util.List;
 public class CardListController {
     private static final Logger log = LoggerFactory.getLogger(CardListController.class);
     private final CardListRepository repository;
+    private final CardImageService images;
 
-    public CardListController(CardListRepository repository) {
+    public CardListController(CardListRepository repository, CardImageService images) {
         this.repository = repository;
+        this.images = images;
     }
 
     public record CreateListRequest(String name, String cardsText) {}
@@ -55,6 +57,22 @@ public class CardListController {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Card list not found.");
         }
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/{id}/image-options")
+    public CardImageService.ImageState imageOptions(@PathVariable String id) throws SQLException {
+        return images.load(id);
+    }
+
+    @PutMapping("/{id}/image-selections")
+    public CardImageService.SaveImagesResult saveImages(@PathVariable String id,
+            @RequestBody CardImageService.SaveImagesRequest request) throws SQLException {
+        return images.save(id, request);
+    }
+
+    @ExceptionHandler(ResponseStatusException.class)
+    public ProblemDetail requestFailure(ResponseStatusException failure) {
+        return ProblemDetail.forStatusAndDetail(failure.getStatusCode(), failure.getReason());
     }
 
     @ExceptionHandler(IllegalArgumentException.class)
