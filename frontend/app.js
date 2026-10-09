@@ -27,6 +27,49 @@ const cancelEditButton = document.querySelector('#cancel-edit');
 const formHeading = document.querySelector('#list-form-heading');
 let editingListId = null;
 let listLoadVersion = 0;
+const pdfExports = new Map();
+const pdfExportViews = new Map();
+
+function updatePdfExportView(listId) {
+  const view = pdfExportViews.get(listId);
+  if (!view) return;
+  const job = pdfExports.get(listId);
+  view.button.disabled = !view.complete || !!job?.busy;
+  view.button.textContent = job?.busy ? 'Generating PDFs…' : 'Generate PDFs';
+  view.status.textContent = job?.message || '';
+  view.status.classList.toggle('error', !!job?.failed);
+  view.download.hidden = !job?.downloadUrl;
+  if (job?.downloadUrl) view.download.href = job.downloadUrl;
+}
+
+async function generateListPdfs(listId) {
+  if (pdfExports.get(listId)?.busy) return;
+  const job = { busy: true, message: 'Starting PDF generation…' };
+  pdfExports.set(listId, job);
+  updatePdfExportView(listId);
+  try {
+    const path = `/${encodeURIComponent(listId)}/pdf-exports`;
+    let result = await listRequest(path, { method: 'POST' });
+    while (true) {
+      job.message = result.message;
+      updatePdfExportView(listId);
+      if (result.status === 'FAILED') throw new Error(result.message);
+      if (result.status === 'READY') {
+        job.downloadUrl = `/api/card-lists${path}/${encodeURIComponent(result.id)}/download`;
+        showSaveToast('PDFs are ready to download.');
+        break;
+      }
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      result = await listRequest(`${path}/${encodeURIComponent(result.id)}`);
+    }
+  } catch (error) {
+    job.failed = true;
+    job.message = error.message;
+  } finally {
+    job.busy = false;
+    updatePdfExportView(listId);
+  }
+}
 
 function setListFormBusy(busy) {
   saveButton.disabled = listName.disabled = listText.disabled = newListButton.disabled = cancelEditButton.disabled = busy;
@@ -77,8 +120,21 @@ function savedListElement(list) {
   const removeStatus = element('p', 'remove-status');
   removeStatus.setAttribute('role', 'status');
   const actions = element('div', 'list-actions');
+  const pdfButton = element('button', 'secondary-button', 'Generate PDFs');
+  pdfButton.type = 'button';
+  pdfButton.title = complete ? 'Generate nine cards per PDF using your Scribus template' : 'Assign and save an image for every card copy first';
+  pdfButton.addEventListener('click', () => { if (!pdfButton.disabled) generateListPdfs(list.id); });
+  const pdfStatus = element('p', 'pdf-export-status');
+  pdfStatus.setAttribute('role', 'status');
+  pdfStatus.setAttribute('aria-live', 'polite');
+  const pdfDownload = element('a', 'pdf-download', 'Download PDFs (ZIP)');
+  pdfDownload.hidden = true;
+  pdfExportViews.set(list.id, { button: pdfButton, status: pdfStatus, download: pdfDownload, complete });
+  updatePdfExportView(list.id);
   actions.append(editButton, imageButton, removeButton);
+  actions.append(pdfButton, pdfDownload);
   details.append(summary, text, actions, removeStatus);
+  details.append(pdfStatus);
   editButton.addEventListener('click', async () => {
     if (saveButton.disabled) return;
     if ((listName.value || listText.value) && !window.confirm('Discard this draft and edit the saved list?')) return;

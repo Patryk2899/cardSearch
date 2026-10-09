@@ -26,6 +26,35 @@ public class CardListRepository {
                             BigInteger cardCount, List<CardListParser.Entry> entries) {}
     public record ListSummary(String id, String name, long lineCount, String createdAt, BigInteger cardCount,
                               long assignedImageCount) {}
+    public record PrintSource(String name, BigInteger cardCount, List<String> imageUrls) {}
+
+    public Optional<PrintSource> printSource(String id) throws SQLException {
+        try (var connection = connect()) {
+            connection.setAutoCommit(false);
+            String name;
+            BigInteger total;
+            try (var query = connection.prepareStatement("SELECT name, cards_text FROM card_lists WHERE id = ?")) {
+                query.setString(1, id);
+                try (var row = query.executeQuery()) {
+                    if (!row.next()) return Optional.empty();
+                    name = row.getString("name");
+                    total = CardListParser.cardCount(row.getString("cards_text"));
+                }
+            }
+            var urls = new ArrayList<String>();
+            try (var query = connection.prepareStatement("""
+                    SELECT image_uri FROM list_card_images WHERE list_id = ?
+                    ORDER BY entry_index, length(copy_index), copy_index
+                    """)) {
+                query.setString(1, id);
+                try (var rows = query.executeQuery()) {
+                    while (rows.next()) urls.add(rows.getString("image_uri"));
+                }
+            }
+            connection.commit();
+            return Optional.of(new PrintSource(name, total, List.copyOf(urls)));
+        }
+    }
 
     private static SavedList savedList(String id, String name, String text, long lineCount, String createdAt) {
         var entries = CardListParser.parse(text);
